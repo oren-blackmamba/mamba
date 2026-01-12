@@ -1,0 +1,261 @@
+﻿<!DOCTYPE html>
+<html lang="he" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlackMamba | Ultimate AI System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Source+Code+Pro&display=swap" rel="stylesheet">
+    <style>
+        /* --- Blackmamba Core Design --- */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; color: #00ff41; font-family: 'Source Code Pro', monospace; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; }
+        .info-overlay { position: absolute; top: 40px; left: 40px; z-index: 10; max-width: 500px; pointer-events: none; }
+        .logo { font-family: 'Orbitron', sans-serif; font-size: 2.2rem; letter-spacing: 5px; color: #fff; text-shadow: 0 0 15px #00ff41; margin: 0; }
+        .project-mission { margin-top: 15px; font-size: 14px; line-height: 1.6; color: rgba(255, 255, 255, 0.9); background: rgba(0, 255, 65, 0.1); padding: 15px; border-left: 3px solid #00ff41; backdrop-filter: blur(2px); pointer-events: auto; }
+        .terminal-container { position: absolute; bottom: 20px; left: 20px; width: 320px; height: 55px; background: rgba(0, 15, 0, 0.85); border: 1px solid rgba(0, 255, 65, 0.4); padding: 8px 15px; z-index: 20; border-radius: 4px; overflow: hidden; }
+        .term-title { font-size: 7px; color: #00ff41; opacity: 0.6; font-family: 'Orbitron'; margin-bottom: 4px; }
+        #typing-text { font-size: 10px; color: #00ff41; }
+        .controls-wrapper { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px; }
+        .ui-btn { background: rgba(0, 170, 255, 0.1); border: 1px solid #00aaff; color: #00aaff; padding: 8px 24px; font-family: 'Orbitron', sans-serif; font-size: 12px; cursor: pointer; transition: 0.3s; }
+        .ui-btn:hover { background: #00aaff; color: #000; box-shadow: 0 0 15px #00aaff; }
+
+        /* --- MamboChat Controls --- */
+        .chat-window { position: absolute; top: 75px; right: 20px; width: 500px; height: 550px; 
+            background: #050a10; border: 1px solid #00aaff; display: none; flex-direction: column; z-index: 900; 
+            box-shadow: 0 0 30px rgba(0, 0, 0, 1); }
+        .chat-window.maximized { top: 10px; right: 10px; left: 10px; bottom: 10px; width: auto; height: auto; z-index: 3000; }
+
+        .chat-header { background: #001a2a; color: #fff; padding: 10px 15px; font-size: 10px; display: flex; justify-content: center; font-family: 'Orbitron'; align-items: center; border-bottom: 1px solid #00aaff; letter-spacing: 2px; }
+        .auth-bar { background: rgba(0, 255, 65, 0.1); border-bottom: 1px solid rgba(0, 255, 65, 0.2); padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .auth-right-group { display: flex; align-items: center; gap: 12px; }
+        #current-nick-label { font-size: 10px; font-family: 'Orbitron'; color: #00ff41; }
+        .retro-auth-btn { background: #000; border: 2px solid #00ff41; color: #00ff41; font-family: 'Orbitron'; font-size: 10px; padding: 6px 14px; cursor: pointer; text-shadow: 0 0 5px #00ff41; box-shadow: 0 0 10px rgba(0, 255, 65, 0.2); transition: 0.3s; font-weight: bold; }
+        .retro-auth-btn:hover { background: #00ff41; color: #000; box-shadow: 0 0 20px #00ff41; }
+        .win-ctrl { font-family: 'Orbitron'; font-size: 11px; cursor: pointer; padding: 5px; transition: 0.2s; font-weight: 900; }
+        .win-ctrl.max { color: #00aaff; }
+        .win-ctrl.close { color: #ff4141; }
+        .win-ctrl:hover { transform: scale(1.2); text-shadow: 0 0 10px currentColor; }
+
+        .chat-layout { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .user-sidebar { width: 130px; border-right: 1px solid rgba(0, 170, 255, 0.2); background: #070e16; padding: 10px; overflow-y: auto; }
+        .sidebar-title { font-size: 8px; color: #00aaff; font-family: 'Orbitron'; margin-bottom: 10px; text-decoration: underline; }
+        .user-node { font-size: 10px; color: #00ff41; margin-bottom: 6px; font-family: 'Source Code Pro'; }
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: #000; }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 15px; font-size: 11px; scroll-behavior: smooth; }
+        .emoji-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 15px; background: #070e16; border-top: 1px solid rgba(0, 170, 255, 0.1); }
+        .emoji-btn { cursor: pointer; font-size: 16px; transition: 0.2s; filter: grayscale(0.3); }
+        .emoji-btn:hover { transform: scale(1.3); filter: grayscale(0); }
+        #chat-input { background: #000; border: none; border-top: 1px solid #00aaff; color: #fff; padding: 18px; outline: none; font-family: 'Source Code Pro'; font-size: 13px; }
+
+        #nick-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .nick-input { background: transparent; border-bottom: 2px solid #00ff41; border-top:none; border-left:none; border-right:none; color: #00ff41; font-family: 'Source Code Pro'; font-size: 22px; outline: none; text-align: center; width: 65%; margin-bottom: 30px; }
+
+        #star-modal, #about-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 380px; background: #050505; z-index: 4000; display: none; border: 2px solid #00ff41; }
+        .modal-header { padding: 10px 15px; font-size: 10px; display: flex; justify-content: space-between; font-family: 'Orbitron'; }
+        .star-input { background:#000; border:1px solid #00ff41; color:#00ff41; padding:12px; width:85%; font-family:'Source Code Pro'; margin: 10px auto; display: block; outline:none; text-align: center; }
+        .thought-area { background: rgba(0, 255, 65, 0.05); border: 1px dashed #00ff41; width: 85%; height: 90px; color: #fff; font-family: 'Source Code Pro'; padding: 10px; margin: 0 auto 20px auto; display: block; outline: none; resize: none; }
+        .cursor { display: inline-block; width: 6px; height: 12px; background: #00ff41; margin-left: 4px; animation: blink 0.8s infinite; vertical-align: middle; }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="spaceCanvas"></canvas>
+    <div class="info-overlay">
+        <h1 class="logo">BLACKMAMBA</h1>
+        <div class="project-mission">We are building an <b>open-source humanoid robot</b> and have projects on GitHub.</div>
+    </div>
+    <div class="controls-wrapper">
+        <button class="ui-btn" onclick="toggleAbout()">ABOUT</button>
+        <button class="ui-btn" onclick="toggleChat()">MAMBOCAT</button>
+    </div>
+    <div class="terminal-container">
+        <div class="term-title">AI_DATABASE_FEED</div>
+        <div><span id="typing-text"></span><span class="cursor"></span></div>
+    </div>
+
+    <div class="chat-window" id="chatWin">
+        <div class="chat-header"><span>MAMBO_SECURE_NODE</span></div>
+        <div class="auth-bar">
+            <span id="current-nick-label">NODE: Anonymous</span>
+            <div class="auth-right-group">
+                <button class="retro-auth-btn" onclick="toggleNickOverlay()">ADD NICKNAME</button>
+                <span class="win-ctrl max" onclick="maximizeChat()">[MAX]</span>
+                <span class="win-ctrl close" onclick="toggleChat()">[X]</span>
+            </div>
+        </div>
+        <div class="chat-layout">
+            <div id="nick-overlay">
+                <div style="font-family:'Orbitron'; color:#00ff41; font-size:12px; margin-bottom:20px;">> REGISTER_IDENTITY</div>
+                <input type="text" id="nick-input" class="nick-input" placeholder="...">
+                <button class="ui-btn" style="border-color:#00ff41; color:#00ff41;" onclick="saveNewNick()">BOOT_NICK</button>
+            </div>
+            <div class="user-sidebar"><div class="sidebar-title">ACTIVE_NODES</div><div id="users-list"></div></div>
+            <div class="chat-main">
+                <div id="chat-messages"></div>
+                <div class="emoji-bar">
+                    <span class="emoji-btn" onclick="addEmoji('😊')">😊</span><span class="emoji-btn" onclick="addEmoji('😂')">😂</span><span class="emoji-btn" onclick="addEmoji('🤔')">🤔</span><span class="emoji-btn" onclick="addEmoji('😎')">😎</span><span class="emoji-btn" onclick="addEmoji('🤖')">🤖</span><span class="emoji-btn" onclick="addEmoji('🚀')">🚀</span><span class="emoji-btn" onclick="addEmoji('🔥')">🔥</span><span class="emoji-btn" onclick="addEmoji('👽')">👽</span><span class="emoji-btn" onclick="addEmoji('✨')">✨</span><span class="emoji-btn" onclick="addEmoji('⚡')">⚡</span>
+                </div>
+                <input type="text" id="chat-input" placeholder="SEND_DATA..." autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <div id="star-modal">
+        <div class="modal-header" style="background:#00ff41; color:#000;"><span>CLOUD_STAR_REGISTRY</span><span onclick="closeStarModal()" style="cursor:pointer;">[X]</span></div>
+        <div style="padding: 20px; text-align: center;">
+            <p id="star-status" style="font-size: 10px; color: #00ff41;">> Awaiting Target...</p>
+            <input type="text" id="star-input-field" class="star-input" placeholder="ASSIGN_NAME">
+            <textarea id="star-thought-field" class="thought-area" placeholder="SHARE_THOUGHTS..."></textarea>
+            <button class="ui-btn" style="border-color:#00ff41; color:#00ff41; width: 90%;" onclick="saveStarToCloud()">SYNC TO CLOUD</button>
+        </div>
+    </div>
+
+    <div id="about-modal">
+        <div class="modal-header" style="background:#00aaff; color:#000;"><span>SYSTEM_STATUS</span><span onclick="toggleAbout()" style="cursor:pointer;">[X]</span></div>
+        <div style="padding:20px; font-size:12px; color:#00ff41;">> PROJECT: BLACKMAMBA<br>> OBJECTIVE: HUMANOID_AI</div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = { databaseURL: "https://blackmamba-chat-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        const canvas = document.getElementById('spaceCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, stars = [], meteors = [], mouse = { x: -1000, y: -1000 }, selectedStar = null;
+        let namedStarsData = {};
+
+        function generateCoolName(id) {
+            const prefixes = ["Alpha", "Nebula", "Cyber", "Void", "Zenith", "Quantum", "Omega", "Orion", "Titan", "Solar"];
+            const cores = ["Draco", "Xenon", "Pulse", "Nova", "Ghost", "Matrix", "Helix", "Vector", "Core"];
+            const hash = id.split('_')[1];
+            return prefixes[hash % prefixes.length] + "-" + cores[(hash * 7) % cores.length] + " " + (hash % 99);
+        }
+
+        database.ref('named_stars').on('value', snap => { namedStarsData = snap.val() || {}; });
+
+        function init() {
+            width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height;
+            stars = []; meteors = [];
+            for (let i = 0; i < 400; i++) stars.push({ x: Math.random()*width-width/2, y: Math.random()*height-height/2, z: Math.random()*width, id: "STAR_" + i });
+            for (let i = 0; i < 3; i++) meteors.push({ reset() { this.x = Math.random()*width; this.y = -100; this.speed = 5+Math.random()*5; }, update() { this.x -= this.speed; this.y += this.speed; if(this.y > height) this.reset(); }, draw() { ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x+50, this.y-50); ctx.stroke(); } });
+            meteors.forEach(m => m.reset());
+        }
+
+        function draw() {
+            ctx.fillStyle = "#000"; ctx.fillRect(0, 0, width, height);
+            const cx = width/2, cy = height/2;
+            stars.forEach(s => {
+                let x = cx + s.x/(s.z/width), y = cy + s.y/(s.z/width);
+                let size = (1-s.z/width)*2.5;
+                if (namedStarsData[s.id]) { ctx.fillStyle = "#00ff41"; size *= 1.5; } 
+                else { ctx.fillStyle = Math.hypot(x - mouse.x, y - mouse.y) < 30 ? "#00ff41" : `rgba(255,255,255,${1-s.z/width})`; }
+                ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
+                s.z -= 1.2; if(s.z <= 0) s.z = width;
+            });
+            meteors.forEach(m => { m.update(); m.draw(); });
+            requestAnimationFrame(draw);
+        }
+
+        let myUsername = "Node_" + Math.floor(Math.random() * 999);
+        document.getElementById('current-nick-label').innerText = "NODE: " + myUsername;
+
+        function getUserColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+            const colors = ['#00ff41', '#00aaff', '#ff00ff', '#ffff00', '#ff8800', '#00ffff', '#ff4444', '#ffffff'];
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        function toggleNickOverlay() { const o = document.getElementById('nick-overlay'); o.style.display = (o.style.display==="flex")?"none":"flex"; }
+        function saveNewNick() {
+            const val = document.getElementById('nick-input').value.trim();
+            if(val) {
+                const old = myUsername; myUsername = val.replace(/\s+/g, '_');
+                document.getElementById('current-nick-label').innerText = "NODE: " + myUsername;
+                database.ref(`status/${old}`).remove();
+                database.ref(`status/${myUsername}`).set({ online: true });
+                toggleNickOverlay();
+            }
+        }
+
+        database.ref(`status/${myUsername}`).set({ online: true });
+        database.ref(`status/${myUsername}`).onDisconnect().remove();
+
+        database.ref('status').on('value', snap => {
+            const list = document.getElementById('users-list'); list.innerHTML = "";
+            for(let user in snap.val()) {
+                const d = document.createElement('div'); d.className = 'user-node'; d.innerText = "> " + user;
+                list.appendChild(d);
+            }
+        });
+
+        const chatInput = document.getElementById('chat-input');
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim() !== "") {
+                database.ref('public_chat').push({ user: myUsername, text: chatInput.value });
+                chatInput.value = "";
+            }
+        });
+
+        database.ref('public_chat').limitToLast(50).on('child_added', snap => {
+            const d = snap.val(); const m = document.createElement('div');
+            m.style.marginBottom = "8px";
+            const userColor = getUserColor(d.user);
+            m.innerHTML = `<span style="color:${userColor}; font-weight:bold;">[${d.user}]</span> <span style="color:#fff;">${d.text}</span>`;
+            const box = document.getElementById('chat-messages'); box.appendChild(m);
+            box.scrollTop = box.scrollHeight;
+        });
+
+        function addEmoji(emoji) { chatInput.value += emoji; chatInput.focus(); }
+        function maximizeChat() { document.getElementById('chatWin').classList.toggle('maximized'); }
+        function toggleChat() { const c = document.getElementById('chatWin'); c.style.display = (c.style.display==="flex")?"none":"flex"; }
+        function toggleAbout() { const a = document.getElementById('about-modal'); a.style.display = (a.style.display==="block")?"none":"block"; }
+        function closeStarModal() { document.getElementById('star-modal').style.display = 'none'; selectedStar = null; }
+
+        window.addEventListener('mousedown', (e) => {
+            if(e.target.tagName !== 'CANVAS') return;
+            stars.forEach(s => {
+                let x = (width/2) + s.x/(s.z/width), y = (height/2) + s.y/(s.z/width);
+                if(Math.hypot(x - e.clientX, y - e.clientY) < 25) {
+                    selectedStar = s;
+                    const data = namedStarsData[s.id] || { name: "", thought: "" };
+                    const coolName = generateCoolName(s.id);
+                    document.getElementById('star-input-field').value = data.name;
+                    document.getElementById('star-thought-field').value = data.thought;
+                    document.getElementById('star-status').innerText = "> TARGET: " + (data.name || coolName);
+                    document.getElementById('star-modal').style.display = 'block';
+                }
+            });
+        });
+
+        function saveStarToCloud() {
+            const name = document.getElementById('star-input-field').value;
+            const thought = document.getElementById('star-thought-field').value;
+            if(selectedStar && name.trim() !== "") {
+                database.ref('named_stars').child(selectedStar.id).set({ name, thought }).then(() => closeStarModal());
+            }
+        }
+
+        const aiFacts = ["> FACT: Mamba architectures scale linearly.", "> MISSION: HUMAN_ROBOTICS"];
+        let factIndex = 0;
+        function typeEffect() {
+            const el = document.getElementById('typing-text');
+            let text = aiFacts[factIndex], i = 0; el.innerText = "";
+            const interval = setInterval(() => {
+                if(!text[i]) return;
+                el.innerText += text[i++];
+                if(i >= text.length) { clearInterval(interval); setTimeout(() => { factIndex = (factIndex+1)%aiFacts.length; typeEffect(); }, 5000); }
+            }, 40);
+        }
+
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('resize', init);
+        init(); draw(); typeEffect();
+    </script>
+</body>
+</html>
